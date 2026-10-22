@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="id" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Peminjaman Barang Kantor</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                500: "#3b82f6",
+                600: "#2563eb",
+                700: "#1d4ed8",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <!-- FontAwesome Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Html5Qrcode Library for Camera Scanning -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <!-- Google Fonts Inter -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+
+      /* Glassmorphism Dynamic Style */
+      .glass-card {
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        transition: all 0.3s ease;
+      }
+
+      .dark .glass-card {
+        background: rgba(30, 41, 59, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .light .glass-card,
+      html:not(.dark) .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(203, 213, 225, 0.6);
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.05),
+          0 8px 10px -6px rgba(0, 0, 0, 0.01);
+      }
+
+      /* Custom Input Dynamic Style */
+      .custom-input {
+        transition: all 0.25s ease;
+      }
+
+      .dark .custom-input {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #f8fafc;
+      }
+
+      html:not(.dark) .custom-input {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #0f172a;
+      }
+
+      .custom-input:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+      }
+
+      /* Animated Scanner Laser */
+      .scanner-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+      }
+
+      .scanner-laser {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          rgba(59, 130, 246, 0) 0%,
+          #3b82f6 50%,
+          rgba(59, 130, 246, 0) 100%
+        );
+        box-shadow: 0 0 15px #3b82f6;
+        animation: scanAnim 2s infinite ease-in-out;
+        z-index: 10;
+      }
+
+      @keyframes scanAnim {
+        0% {
+          top: 5%;
+        }
+        50% {
+          top: 92%;
+        }
+        100% {
+          top: 5%;
+        }
+      }
+
+      /* Shake animation */
+      .shake {
+        animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      }
+
+      @keyframes shake {
+        10%,
+        90% {
+          transform: translate3d(-1px, 0, 0);
+        }
+        20%,
+        80% {
+          transform: translate3d(2px, 0, 0);
+        }
+        30%,
+        50%,
+        70% {
+          transform: translate3d(-4px, 0, 0);
+        }
+        40%,
+        60% {
+          transform: translate3d(4px, 0, 0);
+        }
+      }
+
+      /* Spinner */
+      .spinner {
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        border-top-color: #3b82f6;
+        width: 24px;
+        height: 24px;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .modal-backdrop {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      /* Print formatting */
+      @media print {
+        body {
+          background: white !important;
+          color: black !important;
+          padding: 0 !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .glass-card {
+          background: white !important;
+          border: none !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+        }
+        #mainCard {
+          max-width: 100% !important;
+          width: 100% !important;
+          padding: 0 !important;
+        }
+        .tab-pane {
+          display: block !important;
+        }
+        #tabForm {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-900 dark:bg-slate-950 text-slate-100 dark:text-slate-100 flex flex-col items-center justify-start min-h-screen p-4 sm:p-6 transition-colors duration-300"
+  >
+    <!-- Top Utility Bar: Theme Toggle & Navigation -->
+    <div
+      class="w-full max-w-2xl flex items-center justify-between mb-4 no-print"
+    >
+      <!-- Navigation Tabs -->
+      <div
+        class="flex items-center gap-1.5 p-1 bg-slate-800/80 dark:bg-slate-900/80 rounded-2xl border border-slate-700/60 shadow-lg"
+      >
+        <button
+          type="button"
+          onclick="switchTab('form')"
+          id="tabBtnForm"
+          class="py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition duration-200 bg-blue-600 text-white shadow-md"
+        >
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>Form Input</span>
+        </button>
+        <button
+          type="button"
+          onclick="switchTab('dashboard')"
+          id="tabBtnDashboard"
+          class="py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition duration-200 text-slate-400 hover:text-slate-200"
+        >
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard Publik</span>
+        </button>
+      </div>
+
+      <!-- Light / Dark Theme Toggle Button -->
+      <button
+        type="button"
+        onclick="toggleTheme()"
+        id="btnThemeToggle"
+        class="w-10 h-10 rounded-2xl bg-slate-800/80 dark:bg-slate-800/80 border border-slate-700/60 text-amber-400 hover:text-amber-300 flex items-center justify-center shadow-lg transition active:scale-95"
+        title="Mode Malam / Siang"
+      >
+        <i class="fa-solid fa-moon text-base" id="themeIcon"></i>
+      </button>
+    </div>
+
+    <!-- Main Container Card -->
+    <div
+      id="mainCard"
+      class="w-full max-w-2xl glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative transition-all duration-300"
+    >
+      <!-- Header Section -->
+      <div
+        class="flex items-center justify-between pb-6 border-b border-slate-200/20 dark:border-slate-700/60 mb-6"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0"
+          >
+            <i class="fa-solid fa-boxes-packing text-white text-xl"></i>
+          </div>
+          <div>
+            <h1
+              class="text-xl font-bold tracking-wide text-slate-900 dark:text-white"
+              id="appHeaderTitle"
+            >
+              Peminjaman Barang
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Inventaris & Logistik Kantor
+            </p>
+          </div>
+        </div>
+        <!-- Live Status Badge -->
+        <div
+          id="statusBadge"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300"
+        >
+          <span
+            class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"
+            id="statusDot"
+          ></span>
+          <span id="statusText">Memuat API...</span>
+        </div>
+      </div>
+
+      <!-- TAB 1: FORM PEMINJAMAN -->
+      <div id="tabForm" class="tab-pane space-y-5">
+        <!-- Scanner Toggle Button -->
+        <div>
+          <button
+            id="btnToggleScan"
+            type="button"
+            onclick="toggleScanner()"
+            class="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2.5 transition duration-200 active:scale-[0.98]"
+          >
+            <i class="fa-solid fa-qrcode text-lg"></i>
+            <span id="scanBtnText">Buka Kamera Scan Barcode</span>
+          </button>
+
+          <!-- Scanner Box Area -->
+          <div
+            id="scannerSection"
+            class="hidden mt-4 scanner-container border-2 border-blue-500/40 bg-slate-900/90 p-3 shadow-inner"
+          >
+            <div class="scanner-laser"></div>
+            <div id="reader" class="w-full rounded-lg overflow-hidden"></div>
+            <p class="text-center text-xs text-slate-400 mt-2 font-medium">
+              <i class="fa-solid fa-circle-info mr-1 text-blue-400"></i> Arahkan
+              kamera HP Anda ke Barcode / QR Code barang
+            </p>
+          </div>
+        </div>
+
+        <!-- Main Form -->
+        <form
+          id="borrowForm"
+          onsubmit="handleFormSubmit(event)"
+          class="space-y-5"
+          novalidate
+        >
+          <!-- Employee Dropdown Field -->
+          <div>
+            <label
+              class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2 flex justify-between items-center"
+            >
+              <span
+                ><i class="fa-solid fa-user-tag text-blue-500 mr-1.5"></i> Nama
+                Pegawai / Peminjam</span
+              >
+              <span
+                id="savedTag"
+                class="hidden text-[10px] text-emerald-500 dark:text-emerald-400 font-normal"
+                ><i class="fa-solid fa-clock-rotate-left mr-0.5"></i> Auto-fill
+                HP</span
+              >
+            </label>
+            <div class="relative">
+              <select
+                id="namaPeminjam"
+                required
+                class="custom-input w-full px-4 py-3 rounded-xl text-sm appearance-none outline-none cursor-pointer pr-10"
+              >
+                <option value="" disabled selected>
+                  -- Memuat daftar pegawai... --
+                </option>
+              </select>
+              <div
+                class="absolute inset-y-0 right-0 flex items-center px-3.5 pointer-events-none text-slate-400"
+              >
+                <i class="fa-solid fa-chevron-down text-xs"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- ID Barcode Input Field -->
+          <div>
+            <label
+              class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2"
+            >
+              <i class="fa-solid fa-barcode text-blue-500 mr-1.5"></i> ID
+              Barcode Barang
+            </label>
+            <div class="relative flex items-center">
+              <input
+                type="text"
+                id="idBarang"
+                required
+                placeholder="Contoh: BRG-001"
+                class="custom-input w-full px-4 py-3 rounded-xl text-sm outline-none pr-10 uppercase tracking-wider placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400"
+              />
+              <button
+                type="button"
+                onclick="clearIdBarang()"
+                class="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition p-1"
+              >
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Action Pill Selection -->
+          <div>
+            <label
+              class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2"
+            >
+              <i
+                class="fa-solid fa-arrow-right-arrow-left text-blue-500 mr-1.5"
+              ></i>
+              Pilih Aksi Transaksi
+            </label>
+            <div
+              class="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <label class="cursor-pointer">
+                <input
+                  type="radio"
+                  name="aksi"
+                  value="Pinjam"
+                  checked
+                  class="peer hidden"
+                />
+                <div
+                  class="py-2.5 px-3 rounded-xl text-center text-xs font-semibold text-slate-500 dark:text-slate-400 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:shadow-md peer-checked:shadow-blue-600/30 flex items-center justify-center gap-1.5 transition"
+                >
+                  <i class="fa-solid fa-hand-holding"></i> Pinjam Barang
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input
+                  type="radio"
+                  name="aksi"
+                  value="Kembali"
+                  class="peer hidden"
+                />
+                <div
+                  class="py-2.5 px-3 rounded-xl text-center text-xs font-semibold text-slate-500 dark:text-slate-400 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:shadow-md peer-checked:shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition"
+                >
+                  <i class="fa-solid fa-rotate-left"></i> Kembalikan
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Quantity Input Field -->
+          <div>
+            <label
+              class="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2"
+            >
+              <i class="fa-solid fa-layer-group text-blue-500 mr-1.5"></i>
+              Jumlah Unit
+            </label>
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                onclick="adjustQuantity(-1)"
+                class="w-11 h-11 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center text-lg transition"
+              >
+                <i class="fa-solid fa-minus text-xs"></i>
+              </button>
+              <input
+                type="number"
+                id="jumlahBarang"
+                value="1"
+                min="1"
+                required
+                class="custom-input text-center w-full py-2.5 rounded-xl font-bold text-base outline-none"
+              />
+              <button
+                type="button"
+                onclick="adjustQuantity(1)"
+                class="w-11 h-11 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center text-lg transition"
+              >
+                <i class="fa-solid fa-plus text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            id="btnSubmit"
+            class="w-full mt-2 py-4 px-4 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition duration-200 active:scale-[0.98]"
+          >
+            <span>Proses Transaksi Sekarang</span>
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- TAB 2: DASHBOARD PUBLIK -->
+      <div id="tabDashboard" class="tab-pane hidden space-y-5">
+        <!-- Dashboard Controls & Summary -->
+        <div
+          class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 no-print"
+        >
+          <!-- Search Input -->
+          <div class="relative flex-1">
+            <i
+              class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"
+            ></i>
+            <input
+              type="text"
+              id="searchDashboard"
+              oninput="filterDashboard()"
+              placeholder="Cari ID / nama barang..."
+              class="custom-input w-full pl-9 pr-4 py-2.5 rounded-xl text-xs outline-none"
+            />
+          </div>
+
+          <!-- Action Controls -->
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onclick="loadDashboardData()"
+              class="py-2.5 px-3 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition"
+            >
+              <i class="fa-solid fa-rotate-right text-xs" id="refreshIcon"></i>
+              Refresh
+            </button>
+            <button
+              type="button"
+              onclick="window.print()"
+              class="py-2.5 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition"
+            >
+              <i class="fa-solid fa-file-pdf"></i> Cetak PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- Real-time Stats Cards -->
+        <div class="grid grid-cols-3 gap-3 no-print">
+          <div
+            class="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-center"
+          >
+            <p
+              class="text-[10px] font-bold uppercase tracking-wider text-blue-500 dark:text-blue-400"
+            >
+              Total Jenis
+            </p>
+            <h3
+              id="statTotalItem"
+              class="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5"
+            >
+              -
+            </h3>
+          </div>
+          <div
+            class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center"
+          >
+            <p
+              class="text-[10px] font-bold uppercase tracking-wider text-emerald-500 dark:text-emerald-400"
+            >
+              Tersedia
+            </p>
+            <h3
+              id="statReadyItem"
+              class="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5"
+            >
+              -
+            </h3>
+          </div>
+          <div
+            class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-center"
+          >
+            <p
+              class="text-[10px] font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400"
+            >
+              Dipinjam
+            </p>
+            <h3
+              id="statBorrowedItem"
+              class="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5"
+            >
+              -
+            </h3>
+          </div>
+        </div>
+
+        <!-- Public Inventory Table -->
+        <div
+          class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800"
+        >
+          <table class="w-full text-left text-xs">
+            <thead
+              class="bg-slate-100 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800"
+            >
+              <tr>
+                <th class="p-3 sm:p-3.5">ID Barcode</th>
+                <th class="p-3 sm:p-3.5">Nama Barang</th>
+                <th class="p-3 sm:p-3.5 text-center">Stok (Sisa/Total)</th>
+                <th class="p-3 sm:p-3.5 text-center">Status</th>
+                <th class="p-3 sm:p-3.5">Peminjam Terakhir</th>
+              </tr>
+            </thead>
+            <tbody
+              id="dashboardTableBody"
+              class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300"
+            >
+              <tr>
+                <td colspan="5" class="p-6 text-center text-slate-400">
+                  <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block"></i>
+                  Memuat data inventaris...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="text-[11px] text-slate-400 text-center font-medium no-print">
+          <i class="fa-solid fa-circle-info text-blue-400 mr-1"></i> Data di
+          atas diperbarui secara otomatis dari Google Sheets Kantor.
+        </p>
+      </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div
+      id="toast"
+      class="fixed top-5 right-5 left-5 sm:left-auto sm:w-96 z-50 transform translate-y-[-150%] opacity-0 transition-all duration-300 ease-out pointer-events-none"
+    >
+      <div
+        id="toastCard"
+        class="flex items-center gap-3 p-4 rounded-2xl glass-card border shadow-2xl"
+      >
+        <div
+          id="toastIcon"
+          class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+        ></div>
+        <div class="flex-1">
+          <h4
+            id="toastTitle"
+            class="text-sm font-bold text-slate-900 dark:text-white"
+          ></h4>
+          <p
+            id="toastMessage"
+            class="text-xs text-slate-600 dark:text-slate-300 mt-0.5"
+          ></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Processing Loading Overlay -->
+    <div
+      id="loadingOverlay"
+      class="fixed inset-0 z-50 bg-slate-950/80 modal-backdrop hidden flex flex-col items-center justify-center p-4"
+    >
+      <div
+        class="glass-card p-8 rounded-3xl flex flex-col items-center max-w-xs w-full text-center border border-slate-700/60 shadow-2xl"
+      >
+        <div class="spinner mb-4 border-4 w-12 h-12"></div>
+        <h3 class="text-base font-bold text-white">Memproses Data...</h3>
+        <p class="text-xs text-slate-400 mt-1">
+          Menghubungkan ke Google Sheets kantor secara real-time.
+        </p>
+      </div>
+    </div>
+
+    <!-- Modern SweetAlert-Style Modal Popup -->
+    <div
+      id="modalOverlay"
+      class="fixed inset-0 z-50 bg-slate-950/80 modal-backdrop hidden flex items-center justify-center p-4 transition-all duration-300 opacity-0"
+    >
+      <div
+        id="modalCard"
+        class="glass-card max-w-sm w-full rounded-3xl p-6 sm:p-7 border border-slate-700/80 shadow-2xl transform scale-90 transition-all duration-300 text-center"
+      >
+        <div
+          id="modalIconContainer"
+          class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 shadow-lg"
+        >
+          <i id="modalIcon" class="fa-solid"></i>
+        </div>
+
+        <h3
+          id="modalTitle"
+          class="text-lg font-bold text-slate-900 dark:text-white mb-1"
+        ></h3>
+        <p
+          id="modalDescription"
+          class="text-xs text-slate-600 dark:text-slate-300 mb-5 leading-relaxed"
+        ></p>
+
+        <!-- Details Summary Box -->
+        <div
+          id="modalDetails"
+          class="hidden bg-slate-100 dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 text-left text-xs space-y-2 mb-5"
+        >
+          <div
+            class="flex justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5"
+          >
+            <span class="text-slate-500 dark:text-slate-400">Peminjam:</span>
+            <span
+              id="detailNama"
+              class="font-semibold text-slate-800 dark:text-slate-200"
+            ></span>
+          </div>
+          <div
+            class="flex justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5"
+          >
+            <span class="text-slate-500 dark:text-slate-400">ID Barcode:</span>
+            <span
+              id="detailId"
+              class="font-semibold text-blue-500 tracking-wider"
+            ></span>
+          </div>
+          <div
+            class="flex justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5"
+          >
+            <span class="text-slate-500 dark:text-slate-400">Jenis Aksi:</span>
+            <span id="detailAksi" class="font-semibold"></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500 dark:text-slate-400">Jumlah Unit:</span>
+            <span
+              id="detailJumlah"
+              class="font-semibold text-slate-800 dark:text-slate-200"
+            ></span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onclick="closeModal()"
+          class="w-full py-3 px-4 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700"
+        >
+          Tutup & Lanjutkan
+        </button>
+      </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+      const SCRIPT_URL =
+        "https://script.google.com/macros/s/AKfycbxZM3xo4RAZQuoOHcuap1-k1XkmRlOi5G2mHQkqka8FRSAXqQGVa2geRgmCEyEzNzBa0w/exec";
+
+      let html5QrCode = null;
+      let isScannerActive = false;
+      let globalDashboardData = [];
+
+      // Initialize Theme & App State
+      window.addEventListener("load", () => {
+        initTheme();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const idParam = urlParams.get("id");
+        if (idParam) {
+          document.getElementById("idBarang").value = idParam.toUpperCase();
+        }
+
+        fetchEmployeeList();
+        loadDashboardData();
+      });
+
+      // Theme Toggle Logic (Light / Dark)
+      function initTheme() {
+        const savedTheme = localStorage.getItem("app_theme") || "dark";
+        if (savedTheme === "light") {
+          document.documentElement.classList.remove("dark");
+          document.documentElement.classList.add("light");
+          document.getElementById("themeIcon").className =
+            "fa-solid fa-sun text-amber-500";
+        } else {
+          document.documentElement.classList.remove("light");
+          document.documentElement.classList.add("dark");
+          document.getElementById("themeIcon").className =
+            "fa-solid fa-moon text-amber-400";
+        }
+      }
+
+      function toggleTheme() {
+        const isDark = document.documentElement.classList.contains("dark");
+        if (isDark) {
+          document.documentElement.classList.remove("dark");
+          document.documentElement.classList.add("light");
+          localStorage.setItem("app_theme", "light");
+          document.getElementById("themeIcon").className =
+            "fa-solid fa-sun text-amber-500";
+        } else {
+          document.documentElement.classList.remove("light");
+          document.documentElement.classList.add("dark");
+          localStorage.setItem("app_theme", "dark");
+          document.getElementById("themeIcon").className =
+            "fa-solid fa-moon text-amber-400";
+        }
+      }
+
+      // Tab Navigation
+      function switchTab(tab) {
+        const tabBtnForm = document.getElementById("tabBtnForm");
+        const tabBtnDashboard = document.getElementById("tabBtnDashboard");
+        const tabForm = document.getElementById("tabForm");
+        const tabDashboard = document.getElementById("tabDashboard");
+
+        if (tab === "form") {
+          tabForm.classList.remove("hidden");
+          tabDashboard.classList.add("hidden");
+
+          tabBtnForm.className =
+            "py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition duration-200 bg-blue-600 text-white shadow-md";
+          tabBtnDashboard.className =
+            "py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition duration-200 text-slate-400 hover:text-slate-200";
+        } else {
+          tabForm.classList.add("hidden");
+          tabDashboard.classList.remove("hidden");
+
+          tabBtnDashboard.className =
+            "py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition duration-200 bg-blue-600 text-white shadow-md";
+          tabBtnForm.className =
+            "py-2 px-4 rounded-xl font-bold text-xs flex items-center gap-2 transition duration-200 text-slate-400 hover:text-slate-200";
+
+          loadDashboardData();
+        }
+      }
+
+      // Fetch Employee Dropdown Data
+      function fetchEmployeeList() {
+        const selectEl = document.getElementById("namaPeminjam");
+        const statusDot = document.getElementById("statusDot");
+        const statusText = document.getElementById("statusText");
+
+        fetch(SCRIPT_URL + "?action=getPegawai")
+          .then((response) => response.json())
+          .then((data) => {
+            selectEl.innerHTML =
+              '<option value="" disabled selected>-- Pilih Nama Anda --</option>';
+
+            if (Array.isArray(data) && data.length > 0) {
+              data.forEach((nama) => {
+                const opt = document.createElement("option");
+                opt.value = nama;
+                opt.textContent = nama;
+                selectEl.appendChild(opt);
+              });
+
+              const savedName = localStorage.getItem("peminjam_nama");
+              if (savedName && data.includes(savedName)) {
+                selectEl.value = savedName;
+                document.getElementById("savedTag").classList.remove("hidden");
+              }
+
+              statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+              statusText.textContent = "Sistem Ready";
+            } else {
+              throw new Error("Daftar pegawai kosong");
+            }
+          })
+          .catch((err) => {
+            selectEl.innerHTML =
+              '<option value="" disabled selected>Gagal memuat pegawai</option>';
+            statusDot.className = "w-2 h-2 rounded-full bg-rose-500";
+            statusText.textContent = "Error API";
+          });
+      }
+
+      // Load Public Dashboard Data
+      function loadDashboardData() {
+        const tbody = document.getElementById("dashboardTableBody");
+        const refreshIcon = document.getElementById("refreshIcon");
+
+        refreshIcon.classList.add("fa-spin");
+
+        fetch(SCRIPT_URL + "?action=getBarang")
+          .then((res) => res.json())
+          .then((data) => {
+            refreshIcon.classList.remove("fa-spin");
+            if (Array.isArray(data)) {
+              globalDashboardData = data;
+              renderDashboardTable(data);
+              updateStats(data);
+            }
+          })
+          .catch((err) => {
+            refreshIcon.classList.remove("fa-spin");
+            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-rose-500 font-semibold">Gagal memuat data inventaris. Terjadi kesalahan jaringan.</td></tr>`;
+          });
+      }
+
+      // Render Dashboard Table Rows
+      function renderDashboardTable(data) {
+        const tbody = document.getElementById("dashboardTableBody");
+        tbody.innerHTML = "";
+
+        if (data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 font-medium">Tidak ada data barang yang ditemukan.</td></tr>`;
+          return;
+        }
+
+        data.forEach((item) => {
+          let badgeClass =
+            "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+          if (item.status === "Dipinjam")
+            badgeClass = "bg-rose-500/10 text-rose-500 border-rose-500/20";
+          else if (item.status === "Sebagian Dipinjam")
+            badgeClass = "bg-amber-500/10 text-amber-500 border-amber-500/20";
+
+          const tr = document.createElement("tr");
+          tr.className = "hover:bg-slate-500/5 transition";
+          tr.innerHTML = `
+                    <td class="p-3 sm:p-3.5 font-bold tracking-wider text-blue-500">${item.id}</td>
+                    <td class="p-3 sm:p-3.5 font-medium">${item.nama}</td>
+                    <td class="p-3 sm:p-3.5 text-center font-bold">${item.tersedia} / ${item.total}</td>
+                    <td class="p-3 sm:p-3.5 text-center">
+                        <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border ${badgeClass}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="p-3 sm:p-3.5 text-slate-500 dark:text-slate-400">${item.peminjam || "-"}</td>
+                `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Filter Dashboard Search
+      function filterDashboard() {
+        const query = document
+          .getElementById("searchDashboard")
+          .value.toLowerCase()
+          .trim();
+        const filtered = globalDashboardData.filter(
+          (item) =>
+            item.id.toLowerCase().includes(query) ||
+            item.nama.toLowerCase().includes(query) ||
+            (item.peminjam && item.peminjam.toLowerCase().includes(query)),
+        );
+        renderDashboardTable(filtered);
+      }
+
+      // Dashboard Summary Stats
+      function updateStats(data) {
+        document.getElementById("statTotalItem").textContent = data.length;
+
+        let ready = 0;
+        let borrowed = 0;
+
+        data.forEach((i) => {
+          if (i.status === "Tersedia") ready++;
+          else borrowed++;
+        });
+
+        document.getElementById("statReadyItem").textContent = ready;
+        document.getElementById("statBorrowedItem").textContent = borrowed;
+      }
+
+      // Camera Scanner Control
+      function toggleScanner() {
+        const scannerSection = document.getElementById("scannerSection");
+        const scanBtnText = document.getElementById("scanBtnText");
+
+        if (isScannerActive) {
+          if (html5QrCode) {
+            html5QrCode
+              .stop()
+              .then(() => {
+                scannerSection.classList.add("hidden");
+                scanBtnText.textContent = "Buka Kamera Scan Barcode";
+                isScannerActive = false;
+              })
+              .catch((err) => console.log(err));
+          }
+        } else {
+          scannerSection.classList.remove("hidden");
+          scanBtnText.textContent = "Tutup Kamera Scanner";
+
+          if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+          }
+
+          html5QrCode
+            .start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: { width: 250, height: 160 } },
+              (decodedText) => {
+                document.getElementById("idBarang").value =
+                  decodedText.toUpperCase();
+                showToast(
+                  "success",
+                  "Barcode Terdeteksi",
+                  `ID: ${decodedText}`,
+                );
+
+                html5QrCode.stop().then(() => {
+                  scannerSection.classList.add("hidden");
+                  scanBtnText.textContent = "Buka Kamera Scan Barcode";
+                  isScannerActive = false;
+                });
+              },
+              () => {},
+            )
+            .catch((err) => {
+              scannerSection.classList.add("hidden");
+              scanBtnText.textContent = "Buka Kamera Scan Barcode";
+              isScannerActive = false;
+              showModal(
+                "error",
+                "Kamera Tidak Dapat Dibuka",
+                "Izinkan akses kamera pada browser HP Anda untuk menggunakan fitur scan barcode.",
+              );
+            });
+
+          isScannerActive = true;
+        }
+      }
+
+      function clearIdBarang() {
+        document.getElementById("idBarang").value = "";
+        document.getElementById("idBarang").focus();
+      }
+
+      function adjustQuantity(delta) {
+        const input = document.getElementById("jumlahBarang");
+        let val = parseInt(input.value) || 1;
+        val += delta;
+        if (val < 1) val = 1;
+        input.value = val;
+      }
+
+      // Handle Form Submission
+      function handleFormSubmit(e) {
+        e.preventDefault();
+
+        const nama = document.getElementById("namaPeminjam").value;
+        const idBarang = document
+          .getElementById("idBarang")
+          .value.trim()
+          .toUpperCase();
+        const aksi = document.querySelector('input[name="aksi"]:checked').value;
+        const jumlah = document.getElementById("jumlahBarang").value;
+
+        if (!nama) {
+          triggerShake();
+          showModal(
+            "error",
+            "Nama Belum Dipilih",
+            "Silakan pilih nama pegawai/peminjam terlebih dahulu dari pilihan dropdown.",
+          );
+          return;
+        }
+
+        if (!idBarang) {
+          triggerShake();
+          showModal(
+            "error",
+            "ID Barcode Kosong",
+            "Silakan ketik atau scan barcode barang terlebih dahulu.",
+          );
+          return;
+        }
+
+        if (!jumlah || parseInt(jumlah) <= 0) {
+          triggerShake();
+          showModal(
+            "error",
+            "Jumlah Tidak Valid",
+            "Jumlah unit barang minimal adalah 1.",
+          );
+          return;
+        }
+
+        localStorage.setItem("peminjam_nama", nama);
+        document.getElementById("savedTag").classList.remove("hidden");
+        document.getElementById("loadingOverlay").classList.remove("hidden");
+
+        const payload = {
+          nama_peminjam: nama,
+          id_barang: idBarang,
+          aksi: aksi,
+          jumlah: jumlah,
+        };
+
+        fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then(() => {
+            document.getElementById("loadingOverlay").classList.add("hidden");
+
+            showModal(
+              "success",
+              `Transaksi ${aksi} Berhasil!`,
+              `Data peminjaman barang kantor telah berhasil diperbarui dan dicatat secara otomatis ke database.`,
+              { nama, idBarang, aksi, jumlah },
+            );
+
+            clearIdBarang();
+            loadDashboardData(); // Auto update dashboard
+          })
+          .catch((error) => {
+            document.getElementById("loadingOverlay").classList.add("hidden");
+            showModal(
+              "error",
+              "Gagal Memproses",
+              `Terjadi kesalahan saat mengirim data ke server: ${error.message}`,
+            );
+          });
+      }
+
+      function triggerShake() {
+        const card = document.getElementById("mainCard");
+        card.classList.add("shake");
+        setTimeout(() => card.classList.remove("shake"), 500);
+      }
+
+      function showToast(type, title, message) {
+        const toast = document.getElementById("toast");
+        const toastCard = document.getElementById("toastCard");
+        const toastIcon = document.getElementById("toastIcon");
+        const toastTitle = document.getElementById("toastTitle");
+        const toastMessage = document.getElementById("toastMessage");
+
+        if (type === "success") {
+          toastCard.className =
+            "flex items-center gap-3 p-4 rounded-2xl glass-card border border-emerald-500/30 shadow-2xl";
+          toastIcon.className =
+            "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0";
+          toastIcon.innerHTML =
+            '<i class="fa-solid fa-circle-check text-lg"></i>';
+        } else {
+          toastCard.className =
+            "flex items-center gap-3 p-4 rounded-2xl glass-card border border-rose-500/30 shadow-2xl";
+          toastIcon.className =
+            "w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0";
+          toastIcon.innerHTML =
+            '<i class="fa-solid fa-triangle-exclamation text-lg"></i>';
+        }
+
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
+
+        toast.classList.remove("translate-y-[-150%]", "opacity-0");
+        toast.classList.add("translate-y-0", "opacity-100");
+
+        setTimeout(() => {
+          toast.classList.remove("translate-y-0", "opacity-100");
+          toast.classList.add("translate-y-[-150%]", "opacity-0");
+        }, 3500);
+      }
+
+      function showModal(type, title, description, details = null) {
+        const overlay = document.getElementById("modalOverlay");
+        const card = document.getElementById("modalCard");
+        const iconContainer = document.getElementById("modalIconContainer");
+        const icon = document.getElementById("modalIcon");
+        const titleEl = document.getElementById("modalTitle");
+        const descEl = document.getElementById("modalDescription");
+        const detailsBox = document.getElementById("modalDetails");
+
+        titleEl.textContent = title;
+        descEl.textContent = description;
+
+        if (type === "success") {
+          iconContainer.className =
+            "w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-emerald-500/20";
+          icon.className = "fa-solid fa-check";
+
+          if (details) {
+            document.getElementById("detailNama").textContent = details.nama;
+            document.getElementById("detailId").textContent = details.idBarang;
+
+            const detailAksi = document.getElementById("detailAksi");
+            detailAksi.textContent =
+              details.aksi === "Pinjam" ? "Peminjaman" : "Pengembalian";
+            detailAksi.className =
+              details.aksi === "Pinjam"
+                ? "font-semibold text-blue-500"
+                : "font-semibold text-emerald-500";
+
+            document.getElementById("detailJumlah").textContent =
+              `${details.jumlah} Unit`;
+            detailsBox.classList.remove("hidden");
+          } else {
+            detailsBox.classList.add("hidden");
+          }
+        } else {
+          iconContainer.className =
+            "w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4 bg-rose-500/20 text-rose-400 border border-rose-500/30 shadow-rose-500/20";
+          icon.className = "fa-solid fa-xmark";
+          detailsBox.classList.add("hidden");
+        }
+
+        overlay.classList.remove("hidden");
+        setTimeout(() => {
+          overlay.classList.remove("opacity-0");
+          card.classList.remove("scale-90");
+          card.classList.add("scale-100");
+        }, 10);
+      }
+
+      function closeModal() {
+        const overlay = document.getElementById("modalOverlay");
+        const card = document.getElementById("modalCard");
+
+        card.classList.remove("scale-100");
+        card.classList.add("scale-90");
+        overlay.classList.add("opacity-0");
+
+        setTimeout(() => {
+          overlay.classList.add("hidden");
+        }, 300);
+      }
+    </script>
+  </body>
+</html>
